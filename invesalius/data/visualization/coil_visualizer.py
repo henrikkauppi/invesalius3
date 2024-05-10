@@ -134,6 +134,8 @@ class CoilVisualizer:
 
     def OnNavigationStatus(self, nav_status, vis_status):
         self.is_navigating = nav_status
+        # Show the coil only when navigation is on
+        self.show_coil = nav_status
         if self.is_navigating and self.coil_actor is not None:
             self.coil_actor.SetVisibility(self.show_coil)
 
@@ -152,16 +154,17 @@ class CoilVisualizer:
 
     # Called when 'show coil' button is pressed in the user interface.
     def ShowCoil(self, state):
-        self.show_coil = state
+        # Show the coil only when navigation is on
+        self.show_coil = state and self.is_navigating
 
         if self.target_coil_actor is not None:
-            self.target_coil_actor.SetVisibility(state)
+            self.target_coil_actor.SetVisibility(self.show_coil)
 
         if self.coil_actor:
-            self.coil_actor.SetVisibility(state)
-            self.x_axis_actor.SetVisibility(state)
-            self.y_axis_actor.SetVisibility(state)
-            self.z_axis_actor.SetVisibility(state)
+            self.coil_actor.SetVisibility(self.show_coil)
+            self.x_axis_actor.SetVisibility(self.show_coil)
+            self.y_axis_actor.SetVisibility(self.show_coil)
+            self.z_axis_actor.SetVisibility(self.show_coil)
 
         if not self.is_navigating:
             self.interactor.Render()
