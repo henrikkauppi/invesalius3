@@ -7,7 +7,8 @@ import invesalius.data.polydata_utils as pu
 
 from invesalius.pubsub import pub as Publisher
 import invesalius.session as ses
-
+from invesalius.navigation.navigation import NavigationHub
+from invesalius.navigation.tracker import Tracker
 
 class CoilVisualizer:
     """
@@ -22,7 +23,16 @@ class CoilVisualizer:
     def __init__(self, renderer, interactor, actor_factory, vector_field_visualizer):
         self.renderer = renderer
         self.interactor = interactor
-        
+        self.session = ses.Session()
+        #self.prev_state_loaded = self.session.prev_state_loaded
+        #print("coil viz - prev state loaded:", self.prev_state_loaded)
+
+        #self.state_restored = False if self.session.
+
+        #self.nav_hub = NavigationHub()
+        #print("nav_hub initialized in coil_visualizer.py")
+        #print("MEMORY coil_viz:", id(self.nav_hub))
+
         # The actor factory is used to create actors for the coil and coil center.
         self.actor_factory = actor_factory
 
@@ -45,6 +55,8 @@ class CoilVisualizer:
         self.renderer.AddActor(self.vector_field_assembly)
         self.vector_field_assembly.SetVisibility(0)
 
+        self.tracker = Tracker()
+
         self.x_axis_actor = None
         self.y_axis_actor = None
         self.z_axis_actor = None
@@ -54,8 +66,15 @@ class CoilVisualizer:
         self.coil_path = None
         self.coil_polydata = None
 
+        self.show_coil_button = False
+
         self.show_coil = False
+
+        self.nav_menu_opened = False
+
         self.is_navigating = False
+
+        self.tracker_fiducials_set = self.tracker.AreTrackerFiducialsSet()
 
         self.LoadConfig()
 
@@ -69,22 +88,33 @@ class CoilVisualizer:
         Publisher.subscribe(self.ConfigureCoil, 'Configure coil')
         Publisher.subscribe(self.UpdateCoilPose, 'Update coil pose')
         Publisher.subscribe(self.UpdateVectorField, 'Update vector field')
+        Publisher.subscribe(self.OnNavigationMenu, 'Open navigation menu')
+        Publisher.subscribe(self.updateShowCoilButton, 'Press show-coil button')
+
+        Publisher.subscribe(self.test_print, 'Tracker fiducials set')
+
+    def updateShowCoilButton(self, pressed):
+        self.show_coil_button = pressed
 
     def SaveConfig(self):
         coil_path = self.coil_path.decode(const.FS_ENCODE) if self.coil_path is not None else None
 
-        session = ses.Session()
-        session.SetConfig('coil_path', coil_path)
+        self.session.SetConfig('coil_path', coil_path)
 
     def LoadConfig(self):
-        session = ses.Session()
-        coil_path_unencoded = session.GetConfig('coil_path')
+        coil_path_unencoded = self.session.GetConfig('coil_path')
 
         if coil_path_unencoded is None:
             return
 
         self.coil_path = coil_path_unencoded.encode(const.FS_ENCODE)
         self.coil_polydata = pu.LoadPolydata(path=coil_path_unencoded)
+
+        print("tracker_fiducials_set:", self.tracker_fiducials_set)
+
+    def test_print(self):
+        print("tracker fiducials set - coil visualizer")
+
 
     def UpdateVectorField(self):
         """
@@ -135,8 +165,18 @@ class CoilVisualizer:
     def OnNavigationStatus(self, nav_status, vis_status):
         self.is_navigating = nav_status
         # Show the coil only when navigation is on
-        self.show_coil = nav_status
+        #self.show_coil = nav_status
         if self.is_navigating and self.coil_actor is not None:
+            self.coil_actor.SetVisibility(self.show_coil)
+
+    def OnNavigationMenu(self):
+        print("Running OnNavigationMenu...")
+        print("self.show_coil_button:", self.show_coil_button)
+        print("self.show_coil:", self.show_coil)
+        self.nav_menu_opened = True
+        if self.show_coil_button:
+            self.show_coil = True
+            print("setting coil visible")
             self.coil_actor.SetVisibility(self.show_coil)
 
     # Called when 'track object' button is pressed in the user interface.
@@ -154,20 +194,24 @@ class CoilVisualizer:
 
     # Called when 'show coil' button is pressed in the user interface.
     def ShowCoil(self, state):
-        # Show the coil only when navigation is on
-        self.show_coil = state and self.is_navigating
+        print("Show coil-button press detected in coil_visualizer.py\n")
+        print("tracker fiducials - coil visualization ShowCoil", self.tracker.tracker_fiducials)
+        if self.nav_menu_opened:
+            # Show the coil only when the coregistration has been done and the navigation menu has been opened
+            self.show_coil = state
+            self.show_coil_button = state
 
-        if self.target_coil_actor is not None:
-            self.target_coil_actor.SetVisibility(self.show_coil)
+            if self.target_coil_actor is not None:
+                self.target_coil_actor.SetVisibility(state)
 
-        if self.coil_actor:
-            self.coil_actor.SetVisibility(self.show_coil)
-            self.x_axis_actor.SetVisibility(self.show_coil)
-            self.y_axis_actor.SetVisibility(self.show_coil)
-            self.z_axis_actor.SetVisibility(self.show_coil)
+            if self.coil_actor:
+                self.coil_actor.SetVisibility(state)
+                self.x_axis_actor.SetVisibility(state)
+                self.y_axis_actor.SetVisibility(state)
+                self.z_axis_actor.SetVisibility(state)
 
-        if not self.is_navigating:
-            self.interactor.Render()
+            if not self.is_navigating:
+                self.interactor.Render()
 
     def AddTargetCoil(self, m_target):
         self.RemoveTargetCoil()

@@ -148,6 +148,8 @@ class InnerFoldPanel(wx.Panel):
         # Initialize Navigation, Tracker, Robot, Image, and PedalConnection objects here to make them
         # available to several panels.
         nav_hub = NavigationHub(window=self)
+        print("nav hub init at task_navigator.py")
+        print("MEMORY task_navigator:", id(nav_hub))
 
         self.nav_hub = nav_hub
         self.tracker = nav_hub.tracker

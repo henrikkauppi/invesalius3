@@ -55,6 +55,7 @@ class Session(metaclass=Singleton):
     def __init__(self):
         self.temp_item = False
         self.mask_3d_preview = False
+#        self.prev_state_loaded = False
 
         self._config = {
             'project_status': 3,
@@ -270,6 +271,7 @@ class Session(metaclass=Singleton):
             try:
                 self._state = json.load(state_file)
                 success = True
+#                self.prev_state_loaded = True
 
             except JSONDecodeError as e:
                 print("State file is corrupted. Deleting...")
