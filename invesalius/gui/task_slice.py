@@ -169,6 +169,9 @@ class InnerTaskPanel(wx.Panel):
         algorithm = "Default"
         options = {}
         to_generate = True
+        proj = Project()
+        back_view_evt_id = -31993
+
         if self.GetMaskSelected() != -1:
             sl = slice_.Slice()
             if sl.current_mask.was_edited:
@@ -208,6 +211,9 @@ class InnerTaskPanel(wx.Panel):
 
         else:
             dlg.InexistentMask()
+
+        if proj.modality == 'MRI':
+            Publisher.sendMessage("Set volume view angle", view=back_view_evt_id)
 
     def OnLinkNewMask(self, evt=None):
         try:

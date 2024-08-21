@@ -598,6 +598,10 @@ class Controller:
     # -------------------------------------------------------------------------------------
 
     def LoadProject(self):
+        # Event ID for selecting "Back" as the view plane
+        # which is actually the front view for MRI images and projects
+        back_view_evt_id = -31993
+
         proj = prj.Project()
 
         const.THRESHOLD_OUTVALUE = proj.threshold_range[0]
@@ -626,6 +630,7 @@ class Controller:
 
         Publisher.sendMessage("Show content panel")
         Publisher.sendMessage("Update AUI")
+        print("project modality:", proj.modality)
 
         if len(proj.mask_dict):
             self.Slice.current_mask = None
@@ -670,6 +675,12 @@ class Controller:
 
         Publisher.sendMessage("End busy cursor")
         Publisher.sendMessage("Project loaded successfully")
+
+
+        # In the volume viewer set the view from the front for MRI projects
+        if proj.modality == "MRI":
+            print("Project modality == 'MRI'")
+            Publisher.sendMessage("Set volume view angle", view=back_view_evt_id)
 
     def CreateDicomProject(self, dicom, matrix, matrix_filename):
         name_to_const = {"AXIAL": const.AXIAL, "CORONAL": const.CORONAL, "SAGITTAL": const.SAGITAL}

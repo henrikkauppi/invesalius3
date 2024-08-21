@@ -2814,11 +2814,13 @@ class Viewer(wx.Panel):
         camera.SetParallelScale(settings["parallel_scale"])
 
     def SetViewAngle(self, view):
+        #print("SetViewAngle - view:", view)
         cam = self.ren.GetActiveCamera()
         cam.SetFocalPoint(0, 0, 0)
 
         proj = prj.Project()
         orig_orien = proj.original_orientation
+        #print("original orientation:", orig_orien)
 
         xv, yv, zv = const.VOLUME_POSITION[const.AXIAL][0][view]
         xp, yp, zp = const.VOLUME_POSITION[const.AXIAL][1][view]
