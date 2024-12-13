@@ -806,6 +806,15 @@ X_COLUMN = 8
 Y_COLUMN = 9
 Z_COLUMN = 10
 
+# Page order in the coregistration panel
+
+HEAD_PAGE = 0
+IMAGE_PAGE = 1
+TRACKER_PAGE = 2
+REFINE_PAGE = 3
+STYLUS_PAGE = 4
+STIMULATOR_PAGE = 5
+
 # ------------ Navigation defaults -------------------
 
 MARKER_COLOUR = (1.0, 1.0, 0.0)
