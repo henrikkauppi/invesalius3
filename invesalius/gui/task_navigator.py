@@ -46,9 +46,9 @@ import invesalius.constants as const
 import invesalius.gui.dialogs as dlg
 import invesalius.project as prj
 import invesalius.session as ses
-from invesalius.gui.task_slice import MaskProperties
 from invesalius import inv_paths, utils
 from invesalius.data.markers.marker import Marker, MarkerType
+from invesalius.gui.task_slice import MaskProperties
 from invesalius.gui.widgets.fiducial_buttons import OrderedFiducialButtons
 from invesalius.i18n import tr as _
 from invesalius.navigation.navigation import NavigationHub
@@ -390,33 +390,69 @@ class CoregistrationPanel(wx.Panel):
 
 
 class HeadModelPage(wx.Panel):
-
     def __init__(self, parent, nav_hub):
         wx.Panel.__init__(self, parent)
 
+        # Create sizers
+        top_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        bottom_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        # Add label above combo box
+        label = wx.StaticText(self, label="Mask selection")
+        main_sizer.Add(label, 0, wx.ALIGN_CENTER | wx.TOP, 10)
+
+        # Create combo box
+        self.combo_box = wx.ComboBox(self, choices=[], style=wx.CB_READONLY)
+        self.combo_box.SetMinSize(wx.Size(-1, -1))  # Ensure height adjusts dynamically
+        top_sizer.AddSpacer(20)
+        top_sizer.Add(self.combo_box, 1, wx.EXPAND)
+        top_sizer.AddSpacer(20)
+
+        # Add next button
         next_button = wx.Button(self, label="Next")
         next_button.Bind(wx.EVT_BUTTON, partial(self.OnNext))
-        self.next_button = next_button
+        bottom_sizer.AddStretchSpacer()
+        bottom_sizer.Add(next_button, 0, wx.ALIGN_CENTER)
+        bottom_sizer.AddStretchSpacer()
 
-        bottom_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        bottom_sizer.Add(next_button)
-
-        main_sizer = wx.BoxSizer(wx.VERTICAL)
-        main_sizer.AddMany(
-            [
-                (bottom_sizer, 0, wx.ALIGN_CENTER | wx.CENTER | wx.TOP, 1),
-            ]
-        )
+        main_sizer.Add(top_sizer, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 10)
+        main_sizer.AddStretchSpacer()
+        main_sizer.Add(bottom_sizer, 0, wx.EXPAND | wx.BOTTOM, 10)
 
         self.SetSizerAndFit(main_sizer)
         self.Layout()
         self.__bind_events()
+        self.__bind_events_wx()
 
     def OnNext(self, evt):
         Publisher.sendMessage("Move to image page")
 
     def __bind_events(self):
-        pass
+        Publisher.subscribe(self.AddMask, "Add mask")
+        Publisher.subscribe(self.SelectMaskName, "Select mask name in combo")
+        Publisher.subscribe(self.OnRemoveMasks, "Remove masks")
+
+    def __bind_events_wx(self):
+        self.combo_box.Bind(wx.EVT_COMBOBOX, self.OnComboName)
+
+    def OnComboName(self, evt):
+        mask_index = evt.GetSelection()
+        Publisher.sendMessage("Change mask selected", index=mask_index)
+        Publisher.sendMessage("Show mask", index=mask_index, value=True)
+
+    def AddMask(self, mask):
+        self.combo_box.Append(mask.name)
+
+    def SelectMaskName(self, index):
+        if index >= 0:
+            self.combo_box.SetSelection(index)
+        else:
+            self.combo_box.SetValue("")
+
+    def OnRemoveMasks(self, mask_indexes):
+        for i in mask_indexes:
+            self.combo_box.Delete(i)
 
 
 class ImagePage(wx.Panel):
