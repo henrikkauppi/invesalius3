@@ -44,11 +44,11 @@ from wx.lib.mixins.listctrl import ColumnSorterMixin
 
 import invesalius.constants as const
 import invesalius.gui.dialogs as dlg
+import invesalius.gui.widgets.gradient as grad
 import invesalius.project as prj
 import invesalius.session as ses
 from invesalius import inv_paths, utils
 from invesalius.data.markers.marker import Marker, MarkerType
-from invesalius.gui.task_slice import MaskProperties
 from invesalius.gui.widgets.fiducial_buttons import OrderedFiducialButtons
 from invesalius.i18n import tr as _
 from invesalius.navigation.navigation import NavigationHub
@@ -394,20 +394,26 @@ class HeadModelPage(wx.Panel):
         wx.Panel.__init__(self, parent)
 
         # Create sizers
-        top_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        top_sizer = wx.BoxSizer(wx.VERTICAL)
         bottom_sizer = wx.BoxSizer(wx.HORIZONTAL)
         main_sizer = wx.BoxSizer(wx.VERTICAL)
 
         # Add label above combo box
-        label = wx.StaticText(self, label="Mask selection")
-        main_sizer.Add(label, 0, wx.ALIGN_CENTER | wx.TOP, 10)
+        label_combo = wx.StaticText(self, label="Mask selection")
+        main_sizer.Add(label_combo, 0, wx.ALIGN_CENTER | wx.TOP, 10)
 
-        # Create combo box
+        # Create mask selection combo box
         self.combo_box = wx.ComboBox(self, choices=[], style=wx.CB_READONLY)
-        self.combo_box.SetMinSize(wx.Size(-1, -1))  # Ensure height adjusts dynamically
-        top_sizer.AddSpacer(20)
-        top_sizer.Add(self.combo_box, 1, wx.EXPAND)
-        top_sizer.AddSpacer(20)
+        top_sizer.Add(self.combo_box, 1, wx.EXPAND | wx.LEFT | wx.RIGHT, 20)
+
+        # Add label above mask threshold bar
+        label_thresh = wx.StaticText(self, label="Threshold")
+        top_sizer.Add(label_thresh, 0, wx.ALIGN_CENTER | wx.TOP, 10)
+
+        # Create mask threshold gradient bar
+        gradient = grad.GradientCtrl(self, -1, -5000, 5000, 0, 5000, (0, 255, 0, 100))
+        self.gradient = gradient
+        top_sizer.Add(self.gradient, 1, wx.EXPAND | wx.LEFT | wx.RIGHT, 5)
 
         # Add next button
         next_button = wx.Button(self, label="Next")
@@ -429,12 +435,18 @@ class HeadModelPage(wx.Panel):
         Publisher.sendMessage("Move to image page")
 
     def __bind_events(self):
-        Publisher.subscribe(self.AddMask, "Add mask")
+        Publisher.subscribe(self.SetThresholdBounds, "Update threshold limits")
+        Publisher.subscribe(self.SetThresholdValues, "Set threshold values in gradient")
+        Publisher.subscribe(self.SetThresholdValues2, "Set threshold values")
         Publisher.subscribe(self.SelectMaskName, "Select mask name in combo")
+        Publisher.subscribe(self.SetItemsColour, "Set GUI items colour")
         Publisher.subscribe(self.OnRemoveMasks, "Remove masks")
+        Publisher.subscribe(self.AddMask, "Add mask")
 
     def __bind_events_wx(self):
         self.combo_box.Bind(wx.EVT_COMBOBOX, self.OnComboName)
+        self.Bind(grad.EVT_THRESHOLD_CHANGED, self.OnSlideChanged, self.gradient)
+        self.Bind(grad.EVT_THRESHOLD_CHANGING, self.OnSlideChanging, self.gradient)
 
     def OnComboName(self, evt):
         mask_index = evt.GetSelection()
@@ -453,6 +465,39 @@ class HeadModelPage(wx.Panel):
     def OnRemoveMasks(self, mask_indexes):
         for i in mask_indexes:
             self.combo_box.Delete(i)
+
+    def SetThresholdBounds(self, threshold_range):
+        thresh_min = threshold_range[0]
+        thresh_max = threshold_range[1]
+        self.gradient.SetMinRange(thresh_min)
+        self.gradient.SetMaxRange(thresh_max)
+
+    def SetThresholdValues(self, threshold_range):
+        thresh_min, thresh_max = threshold_range
+        self.gradient.SetMinValue(thresh_min)
+        self.gradient.SetMaxValue(thresh_max)
+
+    def SetThresholdValues2(self, threshold_range):
+        thresh_min, thresh_max = threshold_range
+        self.gradient.SetMinValue(thresh_min)
+        self.gradient.SetMaxValue(thresh_max)
+
+    def OnSlideChanged(self, evt):
+        thresh_min = self.gradient.GetMinValue()
+        thresh_max = self.gradient.GetMaxValue()
+        Publisher.sendMessage("Set threshold values", threshold_range=(thresh_min, thresh_max))
+        session = ses.Session()
+        session.ChangeProject()
+
+    def OnSlideChanging(self, evt):
+        thresh_min = self.gradient.GetMinValue()
+        thresh_max = self.gradient.GetMaxValue()
+        Publisher.sendMessage("Changing threshold values", threshold_range=(thresh_min, thresh_max))
+        session = ses.Session()
+        session.ChangeProject()
+
+    def SetItemsColour(self, colour):
+        self.gradient.SetColour(colour)
 
 
 class ImagePage(wx.Panel):
