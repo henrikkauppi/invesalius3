@@ -315,6 +315,9 @@ class SurfaceManager:
         Create a new surface, based on largest part of the last
         selected surface.
         """
+        msg = "Creating a new surface form the largest contiguous region"
+        progress_dialog = dialogs.SelectLargestSurfaceProgressWindow(msg)
+        progress_dialog.Update()
         index = self.last_surface_index
         proj = prj.Project()
         surface = proj.surface_dict[index]
@@ -322,6 +325,7 @@ class SurfaceManager:
         new_polydata = pu.SelectLargestPart(surface.polydata)
         new_index = self.CreateSurfaceFromPolydata(new_polydata)
         Publisher.sendMessage("Show single surface", index=new_index, visibility=True)
+        progress_dialog.Close()
 
     def OnImportCustomBinFile(self, filename):
         import os

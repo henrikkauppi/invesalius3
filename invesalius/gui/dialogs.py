@@ -1978,6 +1978,29 @@ class SurfaceCreationOptionsPanel(wx.Panel):
         }
 
 
+class SelectLargestSurfaceProgressWindow:
+    def __init__(self, msg: str):
+        self.title = "InVesalius 3"
+        self.msg = msg
+        self.style = wx.PD_APP_MODAL | wx.PD_APP_MODAL | wx.PD_CAN_ABORT
+        self.dlg = wx.ProgressDialog(self.title, self.msg, parent=None, style=self.style)
+        self.running = True
+        self.error = None
+        self.dlg.Show()
+
+    def WasCancelled(self) -> bool:
+        return self.dlg.WasCancelled()
+
+    def Update(self, msg: Optional[str] = None, value=None) -> None:
+        if msg is None:
+            self.dlg.Pulse()
+        else:
+            self.dlg.Pulse(msg)
+
+    def Close(self) -> None:
+        self.dlg.Destroy()
+
+
 class SurfaceTransparencyDialog(wx.Dialog):
     def __init__(
         self, parent: Optional[wx.Window], surface_index: int = 0, transparency: int = 0
