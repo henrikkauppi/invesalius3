@@ -1983,7 +1983,8 @@ class SelectLargestSurfaceProgressWindow:
         self.title = "InVesalius 3"
         self.msg = msg
         self.style = wx.PD_APP_MODAL | wx.PD_APP_MODAL | wx.PD_CAN_ABORT
-        self.dlg = wx.ProgressDialog(self.title, self.msg, parent=None, style=self.style)
+        self.parent = wx.GetApp().GetTopWindow()
+        self.dlg = wx.ProgressDialog(self.title, self.msg, parent=self.parent, style=self.style)
         self.running = True
         self.error = None
         self.dlg.Show()
